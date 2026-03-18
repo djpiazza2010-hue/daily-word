@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Word — Bible Prayer App</title>
+<meta name="description" content="Receive a real Bible verse, prayer, and daily affirmation tailored to your need.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Cinzel:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --parchment: #f5ead6;
+    --parchment-dark: #e8d5b0;
+    --ink: #2c1f0e;
+    --ink-light: #5a3e22;
+    --ink-faint: #8c6d47;
+    --gold: #b8860b;
+    --gold-light: #d4a843;
+    --red: #8b1a1a;
+  }
+
+  html, body {
+    min-height: 100vh;
+    background: #1a1008;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'EB Garamond', Georgia, serif;
+    padding: 16px;
+  }
+
+  .book {
+    width: min(700px, 100%);
+  }
+
+  .page {
+    background: linear-gradient(105deg, #f0deb8 0%, var(--parchment) 30%, #f7edd8 60%, #eedfc0 100%);
+    border-radius: 4px 14px 14px 4px;
+    box-shadow:
+      -6px 0 18px rgba(0,0,0,0.4),
+      6px 0 40px rgba(0,0,0,0.25),
+      inset -3px 0 8px rgba(0,0,0,0.08),
+      inset 3px 0 6px rgba(255,255,255,0.35);
+    display: flex;
+    flex-direction: column;
+    min-height: min(820px, 90vh);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .page::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0; width: 28px;
+    background: linear-gradient(to right, rgba(0,0,0,0.12), transparent);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .page::after {
+    content: '';
+    position: absolute;
+    inset: 80px 0 0 0;
+    background-image: repeating-linear-gradient(
+      transparent, transparent 31px,
+      rgba(139,107,66,0.12) 31px, rgba(139,107,66,0.12) 32px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* HEADER */
+  .header {
+    padding: 28px 40px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-bottom: 1.5px solid var(--parchment-dark);
+    position: relative;
+    z-index: 2;
+  }
+
+  .app-title {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.35em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .cross-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    justify-content: center;
+    margin: 4px 0;
+  }
+  .cross-divider::before { content: ''; flex: 1; max-width: 100px; height: 1px; background: linear-gradient(to right, transparent, var(--gold)); }
+  .cross-divider::after  { content: ''; flex: 1; max-width: 100px; height: 1px; background: linear-gradient(to left,  transparent, var(--gold)); }
+  .cross-symbol { color: var(--gold); font-size: 16px; line-height: 1; }
+
+  .day-label {
+    font-family: 'Cinzel', serif;
+    font-size: 9.5px;
+    letter-spacing: 0.25em;
+    color: var(--ink-faint);
+    margin-top: 4px;
+  }
+
+  /* CONTENT */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 44px 28px;
+    position: relative;
+    z-index: 2;
+    scrollbar-width: thin;
+    scrollbar-color: var(--parchment-dark) transparent;
+  }
+  .content::-webkit-scrollbar { width: 4px; }
+  .content::-webkit-scrollbar-thumb { background: var(--parchment-dark); border-radius: 2px; }
+
+  /* QUESTION SCREEN */
+  #screen-question { animation: fadeIn 0.7s ease; }
+
+  .greeting {
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    color: var(--ink-faint);
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .question-heading {
+    font-family: 'Cinzel', serif;
+    font-size: 22px;
+    color: var(--ink);
+    text-align: center;
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+
+  .question-sub {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 16px;
+    color: var(--ink-light);
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .prayer-input {
+    width: 100%;
+    min-height: 110px;
+    background: rgba(232,213,176,0.45);
+    border: 1px solid var(--parchment-dark);
+    border-radius: 3px;
+    padding: 16px 18px;
+    font-family: 'EB Garamond', serif;
+    font-size: 17px;
+    color: var(--ink);
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    line-height: 1.7;
+    display: block;
+  }
+  .prayer-input::placeholder { color: var(--ink-faint); font-style: italic; }
+  .prayer-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,134,11,0.12); }
+
+  .quick-label {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    color: var(--ink-faint);
+    text-align: center;
+    margin: 18px 0 10px;
+  }
+
+  .quick-topics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 28px;
+  }
+
+  .topic-pill {
+    background: transparent;
+    border: 1px solid var(--parchment-dark);
+    border-radius: 20px;
+    padding: 6px 15px;
+    font-family: 'EB Garamond', serif;
+    font-size: 14px;
+    color: var(--ink-light);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .topic-pill:hover, .topic-pill.active {
+    background: rgba(184,134,11,0.12);
+    border-color: var(--gold);
+    color: var(--ink);
+  }
+
+  .seek-btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    background: var(--ink);
+    color: var(--parchment);
+    border: none;
+    border-radius: 3px;
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+  .seek-btn:hover { background: var(--ink-light); }
+  .seek-btn::after { content: ' ✦'; font-size: 10px; opacity: 0.6; }
+
+  /* LOADING SCREEN */
+  #screen-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    animation: fadeIn 0.4s ease;
+  }
+
+  .candle-flame {
+    width: 18px; height: 26px;
+    background: radial-gradient(ellipse at 50% 80%, #f5c842, #e87c10 60%, transparent 100%);
+    border-radius: 50% 50% 30% 30%;
+    margin: 0 auto;
+    animation: flicker 1.2s ease-in-out infinite alternate;
+  }
+  @keyframes flicker {
+    0%   { transform: scaleX(1) scaleY(1); opacity: 1; }
+    100% { transform: scaleX(0.85) scaleY(1.08); opacity: 0.85; }
+  }
+  .candle-body {
+    width: 12px; height: 40px;
+    background: linear-gradient(to right, #d9cfc0, #f0e8d8, #d0c5b0);
+    margin: 0 auto;
+    border-radius: 2px;
+  }
+  .loading-text {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    color: var(--ink-faint);
+    margin-top: 24px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+  /* PASSAGE SCREEN */
+  #screen-passage { animation: fadeIn 1s ease; }
+
+  .passage-intent {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--ink-faint);
+    text-align: center;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  .passage-prayer-topic {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 17px;
+    color: var(--ink-light);
+    text-align: center;
+    margin-bottom: 22px;
+  }
+
+  .ornament {
+    text-align: center;
+    color: var(--gold);
+    font-size: 20px;
+    letter-spacing: 0.3em;
+    margin: 14px 0;
+    opacity: 0.8;
+  }
+
+  .passage-text {
+    font-family: 'EB Garamond', serif;
+    font-size: 18px;
+    line-height: 1.9;
+    color: var(--ink);
+    margin-bottom: 16px;
+  }
+
+  .drop-cap {
+    float: left;
+    font-family: 'Cinzel', serif;
+    font-size: 62px;
+    line-height: 0.72;
+    color: var(--red);
+    margin-right: 6px;
+    margin-top: 10px;
+  }
+
+  .passage-ref {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--red);
+    display: block;
+    text-align: right;
+    margin-bottom: 22px;
+  }
+
+  .prayer-section-label {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--ink-faint);
+    text-align: center;
+    margin: 6px 0 12px;
+  }
+
+  .prayer-text {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 17px;
+    line-height: 1.9;
+    color: var(--ink-light);
+    border-left: 2px solid var(--gold-light);
+    padding-left: 18px;
+    margin-bottom: 24px;
+  }
+
+  .affirmation-box {
+    background: rgba(184,134,11,0.07);
+    border: 1px solid rgba(184,134,11,0.25);
+    border-radius: 3px;
+    padding: 16px 20px;
+    margin-bottom: 28px;
+  }
+
+  .affirmation-label {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    color: var(--gold);
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .affirmation-text {
+    font-family: 'EB Garamond', serif;
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--ink);
+  }
+
+  .new-prayer-btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    border: 1.5px solid var(--ink-faint);
+    border-radius: 3px;
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--ink-light);
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 10px;
+  }
+  .new-prayer-btn:hover { border-color: var(--gold); color: var(--ink); background: rgba(184,134,11,0.06); }
+
+  .error-msg {
+    background: rgba(139,26,26,0.07);
+    border: 1px solid rgba(139,26,26,0.2);
+    border-radius: 3px;
+    padding: 14px 18px;
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 16px;
+    color: var(--red);
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  /* FOOTER */
+  .footer {
+    padding: 10px 40px 16px;
+    display: flex;
+    justify-content: center;
+    border-top: 1px solid var(--parchment-dark);
+    position: relative;
+    z-index: 2;
+  }
+
+  .page-number {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--ink-faint);
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 500px) {
+    .content { padding: 20px 24px 20px; }
+    .header  { padding: 20px 24px 10px; }
+    .question-heading { font-size: 18px; }
+    .passage-text { font-size: 16px; }
+    .prayer-text  { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+<div class="book">
+  <div class="page">
+
+    <div class="header">
+      <span class="app-title">Daily Word</span>
+      <div class="cross-divider"><span class="cross-symbol">✝</span></div>
+      <span class="day-label" id="day-label"></span>
+    </div>
+
+    <div class="content">
+
+      <!-- SCREEN 1: QUESTION -->
+      <div id="screen-question">
+        <p class="greeting">Good morning, beloved</p>
+        <h1 class="question-heading">What are we<br>praying for today?</h1>
+        <p class="question-sub">Lay your heart before the Lord</p>
+
+        <textarea class="prayer-input" id="prayer-input"
+          placeholder="e.g. I need strength during this difficult season…"
+          rows="4"></textarea>
+
+        <p class="quick-label">or choose a need</p>
+        <div class="quick-topics">
+          <button class="topic-pill" onclick="selectTopic(this)">Healing</button>
+          <button class="topic-pill" onclick="selectTopic(this)">Peace</button>
+          <button class="topic-pill" onclick="selectTopic(this)">Guidance</button>
+          <button class="topic-pill" onclick="selectTopic(this)">Strength</button>
+          <button class="topic-pill" onclick="selectTopic(this)">Gratitude</button>
+          <button class="topic-pill" onclick="selectTopic(this)">Faith</button>
+          <button class="topic-pill" onclick="selectTopic(this)">Forgiveness</button>
+          <button class="topic-pill" onclick="selectTopic(this)">Protection</button>
+          <button class="topic-pill" onclick="selectTopic(this)">Hope</button>
+          <button class="topic-pill" onclick="selectTopic(this)">Love</button>
+        </div>
+
+        <button class="seek-btn" onclick="seekWord()">Seek the Word</button>
+      </div>
+
+      <!-- SCREEN 2: LOADING -->
+      <div id="screen-loading" class="hidden">
+        <div class="candle-flame"></div>
+        <div class="candle-body"></div>
+        <p class="loading-text">Searching the Scriptures…</p>
+      </div>
+
+      <!-- SCREEN 3: PASSAGE -->
+      <div id="screen-passage" class="hidden">
+        <p class="passage-intent">A word for your prayer</p>
+        <p class="passage-prayer-topic" id="display-topic"></p>
+        <div class="ornament">✦ ✦ ✦</div>
+        <div id="passage-container"></div>
+        <button class="new-prayer-btn" onclick="resetApp()">↩ Bring another need</button>
+      </div>
+
+    </div>
+
+    <div class="footer">
+      <span class="page-number" id="page-num">I</span>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Date
+  const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const now = new Date();
+  document.getElementById('day-label').textContent =
+    `${DAYS[now.getDay()]}, ${MONTHS[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+
+  function selectTopic(el) {
+    document.querySelectorAll('.topic-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('prayer-input').value = el.textContent;
+  }
+
+  function show(id) {
+    ['screen-question','screen-loading','screen-passage'].forEach(s =>
+      document.getElementById(s).classList.add('hidden')
+    );
+    document.getElementById(id).classList.remove('hidden');
+  }
+
+  async function seekWord() {
+    const topic = document.getElementById('prayer-input').value.trim();
+    if (!topic) {
+      const input = document.getElementById('prayer-input');
+      input.focus();
+      input.style.borderColor = '#8b1a1a';
+      setTimeout(() => input.style.borderColor = '', 1500);
+      return;
+    }
+
+    document.getElementById('display-topic').textContent = `"${topic}"`;
+    document.getElementById('page-num').textContent = 'II';
+    show('screen-loading');
+
+    try {
+      const res = await fetch('/.netlify/functions/pray', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic }),
+      });
+
+      if (!res.ok) throw new Error('API error');
+      const data = await res.json();
+      renderPassage(data);
+      show('screen-passage');
+      document.getElementById('page-num').textContent = 'III';
+    } catch (e) {
+      document.getElementById('passage-container').innerHTML =
+        `<div class="error-msg">The scriptures could not be reached. Please try again.</div>`;
+      show('screen-passage');
+    }
+  }
+
+  function renderPassage({ verse, reference, prayer, affirmation }) {
+    const first = verse.charAt(0);
+    const rest  = verse.slice(1);
+    document.getElementById('passage-container').innerHTML = `
+      <p class="passage-text">
+        <span class="drop-cap">${first}</span>${rest}
+      </p>
+      <span class="passage-ref">— ${reference}</span>
+      <div class="ornament">✦</div>
+      <p class="prayer-section-label">A Prayer</p>
+      <div class="prayer-text">${prayer}</div>
+      <div class="affirmation-box">
+        <span class="affirmation-label">✦ Today's Affirmation</span>
+        <p class="affirmation-text">${affirmation}</p>
+      </div>
+    `;
+  }
+
+  function resetApp() {
+    document.getElementById('prayer-input').value = '';
+    document.querySelectorAll('.topic-pill').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-num').textContent = 'I';
+    show('screen-question');
+  }
+</script>
+</body>
+</html>
